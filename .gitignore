@@ -1,0 +1,13 @@
+# Build artifacts and local state
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+*.exe
+*.7z
+
+# Runtime logs and per-user settings
+*_log.txt
+*.log
+*_settings.json
