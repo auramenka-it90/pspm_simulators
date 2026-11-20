@@ -76,13 +76,27 @@ HELP_EN = """BALLISTIC COMPUTER (BC) SIMULATOR FOR PSPM BOARD - SPECIFICATION
 5. 400 Hz PERFORMANCE NOTES
    - Auto-Reply mirrors every valid PSPM packet (target RX rate ~400 Hz).
    - "Log every packet" is OFF by default: 400+400 lines/s flood the GUI.
-   - RX/TX activity bars are solid while traffic is fresher than 100 ms.
+   - RX/TX indicators flash once per valid packet (yellow RX / green TX,
+     150 ms blanking), same behavior as the PSPM simulator.
    - Rate meter shows measured RX/TX packets per second (expect ~400/400).
    - Validation order mirrors PSPM firmware: CRC16 first, then XOR_ALL.
 
 6. RX STATUS LEDS
    GLOBAL / ADC / FPGA / BMP280 ERROR lamps copy PSPM status byte D[26].
    P_A = 0 mmHg with BMP280 lamp lit = pressure sensor fault sentinel.
+
+7. BUILT-IN OSCILLOSCOPE (under the telemetry table)
+   Strip-chart scope for ANY received PSPM signal, values decoded to
+   physical units (arcmin, deg/s, deg, m/s, mmHg):
+   - Signal   - ERR_EL/ERR_EL10/ERR_AZ/ERR_AZ10, W_EL/W_AZ, GUN_POS, ROLL,
+                PITCH, V_TANK, V_WIND, COS_FI, P_A, STATUS.
+   - Time/div - 0.25 / 0.5 / 1 / 2 / 5 s per division (8 divisions visible).
+   - Freeze / Clear; per-division value and time tick labels, autoscale Y
+     with 8% margin, header shows units per division.
+   Sampling runs in the RX thread at the true packet rate (up to 400 Hz),
+   buffer 8000 samples (~20 s). Tip: select the signal the PSPM generator
+   targets to watch its waveform live. P_A is flat at 0 while the BMP280
+   ERROR sentinel is active (pressure fault) - this is correct behavior.
 ================================================================================
 """
 
@@ -117,13 +131,27 @@ HELP_RU = """ИМИТАТОР БОРТОВОГО ВЫЧИСЛИТЕЛЯ (БЦ) �
 5. ОСОБЕННОСТИ 400 Гц
    - Auto-Reply отвечает на каждый принятый пакет (RX ~400 Гц).
    - «Log every packet» по умолчанию ВЫКЛ: 800 строк/с подвешают GUI.
-   - Штрихи RX/TX горят, если трафик свежее 100 мс.
+   - Индикаторы RX/TX вспыхивают на каждый принятый/отправленный пакет
+     (жёлтый RX / зелёный TX, гашение 150 мс), как в симуляторе PSPM.
    - Счётчик частоты показывает измеренные пакеты/с (ожидается ~400/400).
    - Порядок проверки как в прошивке: сначала CRC16, затем XOR_ALL.
 
 6. СВЕТОДИОДЫ СТАТУСА
    GLOBAL / ADC / FPGA / BMP280 ERROR копируют байт D[26].
    P_A = 0 при горящем BMP280 - сентинель аварии датчика давления.
+
+7. ВСТРОЕННЫЙ ОСЦИЛЛОГРАФ (под таблицей телеметрии)
+   Стрип-диаграмма ЛЮБОГО принятого сигнала PSPM в физических единицах
+   (угл. мин, град/с, градусы, м/с, мм рт. ст.):
+   - Signal   - ERR_EL/ERR_EL10/ERR_AZ/ERR_AZ10, W_EL/W_AZ, GUN_POS, ROLL,
+                PITCH, V_TANK, V_WIND, COS_FI, P_A, STATUS.
+   - Time/div - 0.25 / 0.5 / 1 / 2 / 5 с на деление (видно 8 делений).
+   - Freeze / Clear; подписи цены деления по вертикали и времени по
+     горизонтали, автомасштаб Y с запасом 8%, в шапке - единицы на деление.
+   Оцифровка идёт в RX-потоке на реальной скорости пакетов (до 400 Гц),
+   буфер 8000 отсчётов (~20 с). Совет: выбирай сигнал, который целит
+   генератор PSPM, и наблюдай его форму вживую. P_A лежит на нуле, пока
+   активен сентинель BMP280 ERROR (авария давления) - это корректно.
 ================================================================================
 """
 
@@ -974,6 +1002,12 @@ class BCPSPMSimulator:
         help_window.geometry("1050x850")
         help_window.transient(self.root)
         help_window.grab_set()
+
+        help_window.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() - 1050) // 2
+        y = self.root.winfo_y() + (self.root.winfo_height() - 850) // 2
+        help_window.geometry(f"+{x}+{y}")
+
         help_font = tkfont.Font(family=self.log_font_family.get(), size=self.log_font_size.get())
         help_text = scrolledtext.ScrolledText(help_window, wrap=tk.WORD, font=help_font)
         help_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
