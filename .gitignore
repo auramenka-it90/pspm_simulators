@@ -4,7 +4,6 @@ __pycache__/
 build/
 dist/
 *.spec
-*.exe
 *.7z
 
 # Runtime logs and per-user settings
